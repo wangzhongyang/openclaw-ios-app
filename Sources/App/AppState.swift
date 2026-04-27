@@ -1,0 +1,501 @@
+import SwiftUI
+import Observation
+
+// MARK: - Theme Types
+
+enum ThemeName: String, CaseIterable {
+    case claw
+    case light
+    case dark
+    case matrix
+}
+
+enum ThemeMode: String, CaseIterable {
+    case system
+    case light
+    case dark
+}
+
+@Observable
+@MainActor
+final class AppState {
+    static let shared = AppState()
+
+    // Connection state
+    var isConnected = false
+    var serverVersion: String?
+    var lastError: String?
+    var gatewayURL: String = AppSettings.shared.gatewayURL
+    var gatewayToken: String = AppSettings.shared.gatewayToken
+
+    // Tab navigation
+    var selectedTab: AppTab = .chat
+    var sidebarOpen = false
+
+    // Theme
+    var themeName: ThemeName = .claw
+    var themeMode: ThemeMode = .system
+
+    // User identity
+    var userName: String?
+    var userAvatar: String?
+    var assistantName: String = "OpenClaw"
+    var assistantAvatar: String = ""
+
+    // Chat state
+    var sessionKey: String = AppSettings.shared.lastSessionKey
+    var lastSessionKey: String { sessionKey }
+    var chatMessages: [ChatMessage] = []
+    var chatStream: String?
+    var chatStreamStartedAt: TimeInterval?
+    var chatStreamSegments: [(text: String, ts: TimeInterval)] = []
+    var chatToolMessages: [ChatMessage] = []
+    var chatSending = false
+    var chatThinkingLevel: String?
+    var chatModelCatalog: [ModelCatalogEntry] = []
+    var chatRunId: String?
+    var chatQueue: [ChatQueueItem] = []
+    var showToolCalls = true
+    var chatCompactionInProgress = false
+    var chatUpdateToken: UUID = UUID()  // triggers UI sync when chat data changes
+
+    private var eventListenerId: UUID?
+
+    // Sessions
+    var sessionsResult: SessionsListResult?
+    var sessionsLoading = false
+
+    // Health
+    var healthResult: HealthSummary?
+
+    // Config
+    var configSnapshot: ConfigSnapshot?
+    var configRaw = "{\n}\n"
+    var configForm: [String: Any]?
+
+    // Cron
+    var cronJobs: [CronJob] = []
+    var cronStatus: CronStatus?
+
+    // Channels
+    var channelsSnapshot: ChannelsStatusSnapshot?
+
+    // Usage
+    var usageResult: SessionsUsageResult?
+
+    // Agents
+    var agentsList: AgentsListResult?
+    var toolsCatalogResult: ToolsCatalogResult?
+
+    // Skills
+    var skillsReport: SkillStatusReport?
+
+    // Logs
+    var logEntries: [LogEntry] = []
+
+    // Dreams
+    var dreamingStatus: DreamingStatus?
+    var dreamDiaryContent: String?
+
+    private init() {}
+
+    func start() {
+        // Auto-reconnect if credentials exist
+        if !gatewayURL.isEmpty, !gatewayToken.isEmpty {
+            connect()
+        }
+    }
+
+    func connect() {
+        print("[AppState] connect: url=\(gatewayURL), token=\(String(gatewayToken.prefix(8)))...")
+        Task {
+            do {
+                try await GatewayClient.shared.connect(
+                    url: gatewayURL,
+                    token: gatewayToken
+                )
+                print("[AppState] connected, version=\(serverVersion ?? "unknown")")
+                isConnected = true
+
+                // Use server session defaults from hello snapshot (matching Web UI behavior)
+                if let mainSessionKey = GatewayClient.shared.helloSnapshot?.sessionDefaults?.mainSessionKey,
+                   !mainSessionKey.isEmpty {
+                    sessionKey = mainSessionKey
+                    AppSettings.shared.lastSessionKey = mainSessionKey
+                    print("[AppState] using server sessionDefaults.mainSessionKey=\(mainSessionKey)")
+                }
+
+                setupEventListeners()
+                loadInitialData()
+            } catch {
+                print("[AppState] connect failed: \(error)")
+                lastError = error.localizedDescription
+            }
+        }
+    }
+
+    private func setupEventListeners() {
+        eventListenerId = GatewayClient.shared.onEvent { [weak self] frame in
+            Task { @MainActor in
+                self?.handleGatewayEvent(frame)
+            }
+        }
+    }
+
+    private func handleGatewayEvent(_ frame: GatewayEventFrame) {
+        switch frame.event {
+        case "chat":
+            handleChatEvent(frame.payload)
+        case "session.tool":
+            handleToolEvent(frame.payload)
+        case "chat.run":
+            handleChatRunEvent(frame.payload)
+        default:
+            break
+        }
+    }
+
+    private func handleToolEvent(_ payloadData: Data?) {
+        // Tool execution events during a chat run
+        guard let payloadData,
+              let toolEvent = try? JSONDecoder.default.decode(ToolCallEvent.self, from: payloadData)
+        else { return }
+
+        // 当工具调用开始时，将当前 stream 文本提交为 segment（对齐 Web UI app-tool-stream.ts）
+        if let streamText = chatStream, !streamText.trimmingCharacters(in: .whitespaces).isEmpty {
+            let now = Date.now.timeIntervalSince1970
+            chatStreamSegments.append((text: streamText, ts: now))
+            chatStream = nil
+            chatStreamStartedAt = nil
+        }
+
+        // 查找现有的工具调用消息
+        if let existingIndex = chatToolMessages.firstIndex(where: { $0.id == toolEvent.id }) {
+            // 更新现有的工具调用
+            var existingMsg = chatToolMessages[existingIndex]
+            if var existingToolCalls = existingMsg.toolCalls, let toolCallIndex = existingToolCalls.firstIndex(where: { $0.id == toolEvent.id }) {
+                // 更新工具调用状态和输出
+                var updatedToolCall = existingToolCalls[toolCallIndex]
+                updatedToolCall.output = toolEvent.output
+                updatedToolCall.status = toolEvent.status == "running" ? .running : .completed
+                existingToolCalls[toolCallIndex] = updatedToolCall
+                existingMsg.toolCalls = existingToolCalls
+                existingMsg.content = toolEvent.output ?? ""
+                chatToolMessages[existingIndex] = existingMsg
+            }
+        } else {
+            // 创建新的工具调用消息
+            let toolMsg = ChatMessage(
+                id: toolEvent.id,
+                role: "tool",
+                content: toolEvent.output ?? "",
+                toolCalls: [ToolCall(
+                    id: toolEvent.id,
+                    name: toolEvent.name,
+                    input: toolEvent.input ?? "",
+                    output: toolEvent.output,
+                    status: toolEvent.status == "running" ? .running : .completed
+                )],
+                toolCallId: toolEvent.id
+            )
+            chatToolMessages.append(toolMsg)
+        }
+        chatUpdateToken = UUID()
+    }
+
+    private func handleChatRunEvent(_ payloadData: Data?) {
+        // Chat run state events (started, etc.)
+    }
+
+    private func handleChatEvent(_ payloadData: Data?) {
+        guard let payloadData,
+              let payload = try? JSONDecoder.default.decode(ChatEventPayload.self, from: payloadData)
+        else { return }
+
+        // Filter events for current session
+        if let sessionKey = payload.sessionKey, sessionKey != self.sessionKey {
+            return
+        }
+
+        guard let state = payload.state else { return }
+
+        switch state {
+        case "delta":
+            // Extract text delta from message
+            if let text = extractText(from: payload.message) {
+                chatStream = (chatStream ?? "") + text
+                chatUpdateToken = UUID()
+                if chatStreamStartedAt == nil {
+                    chatStreamStartedAt = Date.now.timeIntervalSince1970
+                }
+                GatewayClient.log("[AppState] delta: text=\(String(text.prefix(50))) messages=\(chatMessages.count)")
+            } else {
+                GatewayClient.log("[AppState] delta: extractText returned nil, messages=\(chatMessages.count)")
+            }
+
+        case "final":
+            // Run completed - use stream text or reload history
+            if let text = extractText(from: payload.message), !text.trimmingCharacters(in: .whitespaces).isEmpty,
+               !text.uppercased().contains("NO_REPLY") {
+                let msg = ChatMessage(id: chatRunId ?? UUID().uuidString, role: "assistant", content: text)
+                chatMessages.append(msg)
+            } else if let streamText = chatStream, !streamText.trimmingCharacters(in: .whitespaces).isEmpty {
+                let msg = ChatMessage(id: chatRunId ?? UUID().uuidString, role: "assistant", content: streamText)
+                chatMessages.append(msg)
+            }
+            chatStream = nil
+            chatRunId = nil
+            chatSending = false
+            chatUpdateToken = UUID()
+
+        case "aborted":
+            if let streamText = chatStream, !streamText.trimmingCharacters(in: .whitespaces).isEmpty {
+                let msg = ChatMessage(id: chatRunId ?? UUID().uuidString, role: "assistant", content: streamText)
+                chatMessages.append(msg)
+            }
+            chatStream = nil
+            chatRunId = nil
+            chatSending = false
+            chatUpdateToken = UUID()
+
+        case "error":
+            chatStream = nil
+            chatRunId = nil
+            chatSending = false
+            chatUpdateToken = UUID()
+            lastError = payload.errorMessage ?? "Chat error"
+
+        default:
+            break
+        }
+    }
+
+    private func extractText(from message: AnyCodable?) -> String? {
+        guard let dict = message?.value as? [String: Any] else { return nil }
+
+        // Try content array (content: [{ text: "..." }])
+        if let content = dict["content"] as? [[String: Any]],
+           let firstBlock = content.first,
+           let text = firstBlock["text"] as? String {
+            return text
+        }
+
+        // Try direct text field
+        if let text = dict["text"] as? String {
+            return text
+        }
+
+        return nil
+    }
+
+    func disconnect() {
+        GatewayClient.shared.disconnect()
+        isConnected = false
+    }
+
+    private func loadInitialData() {
+        loadHealth()
+        loadModelCatalog()
+        loadSessionsAndAutoSelect()
+    }
+
+    private func loadSessionsAndAutoSelect() {
+        Task { @MainActor in
+            do {
+                let params: [String: Any] = ["includeGlobal": true, "includeUnknown": false, "limit": 120]
+                let result = try await GatewayClient.shared.request(type: SessionsListResult.self, method: "sessions.list", params: params)
+                GatewayClient.log("[AppState] sessions loaded: count=\(result.count), sessions.count=\(result.sessions.count)")
+                for session in result.sessions {
+                    GatewayClient.log("[AppState]   session: key=\(session.key), kind=\(session.kind), label=\(session.label ?? "nil")")
+                }
+                sessionsResult = result
+
+                // Auto-select first session if none selected
+                if sessionKey.isEmpty, let firstSession = result.sessions.first {
+                    sessionKey = firstSession.key
+                    AppSettings.shared.lastSessionKey = firstSession.key
+                    GatewayClient.log("[AppState] auto-selected session: \(firstSession.key)")
+                } else {
+                    GatewayClient.log("[AppState] no auto-select: sessionKey=\(sessionKey), firstSession=\(result.sessions.first?.key ?? "none")")
+                }
+
+                // Load chat history now that we have a valid session key
+                if !sessionKey.isEmpty {
+                    let chatParams = ["sessionKey": sessionKey]
+                    let chatResult = try await GatewayClient.shared.request(type: ChatHistoryResult.self, method: "chat.history", params: chatParams)
+                    GatewayClient.log("[AppState] chat history loaded: \(chatResult.messages.count) messages for sessionKey=\(sessionKey)")
+                    // Ensure all messages have stable IDs
+                    let messagesWithIDs = chatResult.messages.enumerated().map { idx, msg in
+                        if msg.id != nil { return msg }
+                        let ts = msg.timestamp.map { String($0) } ?? "\(idx)"
+                        return ChatMessage(id: "\(ts)-\(msg.role)-\(idx)", role: msg.role, content: msg.content, timestamp: msg.timestamp, runId: msg.runId, toolCalls: msg.toolCalls)
+                    }
+                    for msg in messagesWithIDs {
+                        let preview = msg.content.prefix(60).replacingOccurrences(of: "\n", with: "\\n")
+                        GatewayClient.log("[AppState]   [\(msg.role)] id=\(msg.id ?? "nil") \(preview)")
+                    }
+                    
+                    // Preserve local temporary messages that are not in server history
+                    let serverMessageIds = Set(messagesWithIDs.compactMap { $0.id })
+                    let preservedLocalMessages = chatMessages.filter { msg in
+                        // Keep messages that have temp IDs (local only) or are not in server response
+                        guard let msgId = msg.id else { return true } // Keep messages without ID
+                        return msgId.hasPrefix("temp-") || !serverMessageIds.contains(msgId)
+                    }
+                    
+                    // Combine server messages with preserved local messages
+                    chatMessages = messagesWithIDs + preservedLocalMessages
+                    
+                    GatewayClient.log("[AppState] loadSessions: loaded \(messagesWithIDs.count) server messages, preserved \(preservedLocalMessages.count) local messages")
+                } else {
+                    GatewayClient.log("[AppState] skipping chat history: sessionKey is empty")
+                }
+            } catch {
+                GatewayClient.log("[AppState] sessions load failed: \(error)")
+            }
+        }
+    }
+
+    func loadHealth() {
+        Task {
+            do {
+                let health = try await GatewayClient.shared.request(type: HealthSummary.self, method: "health")
+                healthResult = health
+            } catch {
+                print("[AppState] health load failed: \(error)")
+            }
+        }
+    }
+
+    func loadChatHistory() {
+        guard !sessionKey.isEmpty else { return }
+        Task {
+            do {
+                let params = ["sessionKey": sessionKey]
+                let result = try await GatewayClient.shared.request(type: ChatHistoryResult.self, method: "chat.history", params: params)
+                let messagesWithIDs = result.messages.enumerated().map { idx, msg in
+                    if msg.id != nil { return msg }
+                    let ts = msg.timestamp.map { String($0) } ?? "\(idx)"
+                    return ChatMessage(id: "\(ts)-\(msg.role)-\(idx)", role: msg.role, content: msg.content, timestamp: msg.timestamp, runId: msg.runId, toolCalls: msg.toolCalls)
+                }
+                
+                // Preserve local temporary messages that are not in server history
+                let serverMessageIds = Set(messagesWithIDs.compactMap { $0.id })
+                let preservedLocalMessages = chatMessages.filter { msg in
+                    // Keep messages that have temp IDs (local only) or are not in server response
+                    guard let msgId = msg.id else { return true } // Keep messages without ID
+                    return msgId.hasPrefix("temp-") || !serverMessageIds.contains(msgId)
+                }
+                
+                // Combine server messages with preserved local messages
+                chatMessages = messagesWithIDs + preservedLocalMessages
+                
+                GatewayClient.log("[AppState] loadChatHistory: loaded \(messagesWithIDs.count) server messages, preserved \(preservedLocalMessages.count) local messages")
+            } catch {
+                print("[AppState] chat history failed: \(error)")
+            }
+        }
+    }
+
+    func loadModelCatalog() {
+        Task {
+            do {
+                let result = try await GatewayClient.shared.request(type: ModelCatalogResult.self, method: "models.catalog")
+                chatModelCatalog = result.models
+            } catch {
+                print("[AppState] model catalog failed: \(error)")
+            }
+        }
+    }
+
+    func sendMessage(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        // Add user message immediately with a temporary ID that won't conflict with server IDs
+        // Use "temp-" prefix to identify local-only messages
+        let tempId = "temp-\(UUID().uuidString)"
+        let userMsg = ChatMessage(id: tempId, role: "user", content: trimmed)
+        chatMessages.append(userMsg)
+        chatUpdateToken = UUID()
+        GatewayClient.log("[AppState] sendMessage: added user msg with temp ID, messages count=\(chatMessages.count)")
+
+        // Start streaming state
+        chatStream = nil  // Keep nil until actual delta arrives
+        chatSending = true
+
+        Task {
+            do {
+                let params: [String: Any] = [
+                    "sessionKey": sessionKey,
+                    "message": trimmed,
+                    "idempotencyKey": UUID().uuidString
+                ]
+                let result = try await GatewayClient.shared.request(type: ChatSendResult.self, method: "chat.send", params: params)
+                // Server will send back the actual message via chat events
+                chatRunId = result.runId
+            } catch {
+                // Handle send error - keep the temp message but mark as failed
+                GatewayClient.log("[AppState] sendMessage failed: \(error)")
+                chatSending = false
+                chatUpdateToken = UUID()
+            }
+        }
+    }
+
+    func abortChat() {
+        Task {
+            do {
+                let params = ["sessionKey": sessionKey]
+                _ = try await GatewayClient.shared.request(type: ChatAbortResult.self, method: "chat.abort", params: params)
+            } catch {
+                print("[AppState] abort failed: \(error)")
+            }
+        }
+    }
+
+    func setSessionKey(_ key: String) {
+        // Clear all local chat state when switching sessions
+        chatMessages = []
+        chatStream = nil
+        chatStreamStartedAt = nil
+        chatStreamSegments = []
+        chatToolMessages = []
+        chatSending = false
+        chatRunId = nil
+        
+        sessionKey = key
+        AppSettings.shared.lastSessionKey = key
+        loadChatHistory()
+    }
+
+    func startNewSession() {
+        chatMessages = []
+        chatStream = nil
+        chatStreamStartedAt = nil
+        chatStreamSegments = []
+        chatToolMessages = []
+        chatSending = false
+        chatRunId = nil
+        chatUpdateToken = UUID()
+        // 创建新的 session key
+        let newKey = "session-\(UUID().uuidString)"
+        sessionKey = newKey
+        AppSettings.shared.lastSessionKey = newKey
+    }
+
+    func clearChat() {
+        chatMessages = []
+        chatStream = nil
+        chatStreamStartedAt = nil
+        chatStreamSegments = []
+        chatToolMessages = []
+        chatSending = false
+        chatRunId = nil
+        chatUpdateToken = UUID()
+    }
+
+    func removeQueueItem(_ id: String) {
+        chatQueue.removeAll { $0.id == id }
+    }
+}

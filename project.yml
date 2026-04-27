@@ -1,0 +1,78 @@
+name: OpenClawControliOS
+options:
+  bundleIdPrefix: ai.openclaw.control
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "15.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+  indentWidth: 4
+  tabWidth: 4
+  usesTabs: false
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    SWIFT_STRICT_CONCURRENCY: complete
+    ENABLE_STRICT_OBJC_MSGSEND: YES
+    CLANG_ENABLE_MODULES: YES
+
+packages:
+  MarkdownUI:
+    url: https://github.com/gonzalezreal/MarkdownUI
+    majorVersion: 2.0
+  Highlightr:
+    url: https://github.com/raspu/Highlightr
+    majorVersion: 2.0
+  ExyteChat:
+    url: https://github.com/exyte/Chat
+    from: 3.0.0
+
+targets:
+  OpenClawControliOS:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+      - path: Resources
+        buildPhase: none
+    settings:
+      base:
+        PRODUCT_NAME: OpenClaw
+        PRODUCT_BUNDLE_IDENTIFIER: ai.openclaw.control
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: 1
+        INFOPLIST_FILE: Resources/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        DEVELOPMENT_ASSET_PATHS: Resources
+    dependencies:
+      - sdk: UIKit.framework
+      - sdk: Foundation.framework
+      - sdk: SwiftUI.framework
+      - sdk: CryptoKit.framework
+      - sdk: Security.framework
+      - sdk: Combine.framework
+      - package: MarkdownUI
+      - package: Highlightr
+      - package: ExyteChat
+
+  OpenClawControliOSTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - Tests
+    dependencies:
+      - target: OpenClawControliOS
+
+schemes:
+  OpenClawControliOS:
+    build:
+      targets:
+        OpenClawControliOS: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - OpenClawControliOSTests
+      gatherCoverageData: true
