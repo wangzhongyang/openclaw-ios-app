@@ -3,49 +3,40 @@ import Foundation
 // MARK: - Dream Models
 
 struct DreamingStatus: Codable {
+    let pluginId: String
+    let light: DreamingPhaseStatus
+    let deep: DreamingPhaseStatus  
+    let rem: DreamingPhaseStatus
+    let diaryPath: String
+    let memoryWikiPluginId: String
+}
+
+struct DreamingPhaseStatus: Codable {
     let enabled: Bool
-    let mode: String?
-    let diaryPath: String?
-    let lastRunAt: TimeInterval?
-    let lastError: String?
+    let cron: String
+    let managedCronPresent: Bool
+    let nextRunAtMs: TimeInterval?
+    let lookbackDays: Int?
+    let limit: Int?
+    let minScore: Double?
+    let minRecallCount: Int?
+    let minUniqueQueries: Int?
+    let recencyHalfLifeDays: Double?
+    let maxAgeDays: Int?
+    let minPatternStrength: Double?
 }
 
-struct WikiMemoryPalace: Codable {
-    let entries: [WikiMemoryEntry]
-    let totalCount: Int
-}
-
-struct WikiMemoryEntry: Codable, Identifiable {
-    let id: String
-    let title: String
-    let content: String?
-    let createdAt: TimeInterval
-    let updatedAt: TimeInterval
-    let tags: [String]?
-}
-
-struct DreamDiaryEntry: Codable, Identifiable {
-    let id: String
-    let title: String
+struct DreamingDiaryResult: Codable {
     let content: String
-    let createdAt: TimeInterval
-    let tags: [String]?
 }
 
-struct WikiImportInsights: Codable {
-    let totalEntries: Int
-    let importedCount: Int
-    let errorCount: Int
-    let errors: [String]
+struct WikiMemoryPalace: Codable, Identifiable {
+    let id = UUID()
+    let name: String
+    let description: String
+    let entries: [String]
 }
 
-struct DreamingModeResult: Codable {
-    let ok: Bool
-    let mode: String?
-}
-
-struct DreamAction: Codable {
-    let ok: Bool
-    let message: String?
-    let path: String?
+struct DreamingWikiListResult: Codable {
+    let palaces: [WikiMemoryPalace]
 }

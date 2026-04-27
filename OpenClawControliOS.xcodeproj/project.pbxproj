@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		01BC81D75692BC07A4D9D143 /* GatewayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7AFD7C285CC91D6C8D8502 /* GatewayClient.swift */; };
 		07B8781533F0DC35EDAD7F62 /* AgentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32CB608D8FA0CD498766D207 /* AgentsView.swift */; };
+		15C0C8B562376CFB964355D8 /* DreamsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C927801E3EFBE1A38659D846 /* DreamsTests.swift */; };
 		18F993F32176EFF8FCED2DBE /* ChannelsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08ED63600FB7B39406B54A30 /* ChannelsView.swift */; };
 		1ECC64F60C456C0AB0547288 /* AppearanceSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EFA2E498AE9545CAD6CE95A /* AppearanceSettingsView.swift */; };
 		23092DB3B4E49FF6A48C5D5E /* AIAgentsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C54007C75AECB6A4F04E7F1 /* AIAgentsSettingsView.swift */; };
@@ -113,6 +114,7 @@
 		BCAC2D67CABDD6FF51E7EE19 /* OpenClawControlApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenClawControlApp.swift; sourceTree = "<group>"; };
 		C4B71D6ED607B35F09ED9CAB /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		C8776A878967AB3270E63A64 /* SharedComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedComponents.swift; sourceTree = "<group>"; };
+		C927801E3EFBE1A38659D846 /* DreamsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DreamsTests.swift; sourceTree = "<group>"; };
 		CA64D859B6D5F553060722B3 /* CronView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CronView.swift; sourceTree = "<group>"; };
 		CB9DB5C08332CE8E5C8CC7B5 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		CCC22FA0CC62019FE101677B /* HealthModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthModels.swift; sourceTree = "<group>"; };
@@ -295,6 +297,7 @@
 		AD7836F207B1A6F349419024 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				C927801E3EFBE1A38659D846 /* DreamsTests.swift */,
 				70F229CDA0BE98BC3BF84FB0 /* SessionModelTests.swift */,
 			);
 			path = Tests;
@@ -487,6 +490,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				15C0C8B562376CFB964355D8 /* DreamsTests.swift in Sources */,
 				E515CE3BB501283163D6EBDE /* SessionModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -2,22 +2,49 @@ import SwiftUI
 
 struct DreamsView: View {
     @Environment(AppState.self) var appState
-
+    
     var body: some View {
         List {
-            if let status = appState.skillsReport {
-                Section("Skills Workspace") {
-                    DetailRow(label: "Workspace", value: status.workspaceDir)
-                    DetailRow(label: "Skills", value: "\(status.skills.count)")
+            // Dreaming Status
+            if let status = appState.dreamingStatus {
+                Section("Dreaming Status") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("Plugin:")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text(status.pluginId)
+                                .font(.caption)
+                        }
+                        HStack {
+                            Text("Diary Path:")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text(status.diaryPath)
+                                .font(.caption)
+                        }
+                    }
+                    .padding(.vertical, 2)
                 }
             }
-
-            Section("Dreams") {
-                Text("Dream management coming soon")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            
+            // Dream Diary
+            Section("Dream Diary") {
+                if let content = appState.dreamDiaryContent, !content.isEmpty {
+                    Text(content)
+                        .font(.system(size: 14))
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Text("No dream diary content")
+                        .foregroundColor(.secondary)
+                }
             }
         }
         .navigationTitle("Dreams")
+        .task {
+            await appState.loadDreamingStatus()
+            await appState.loadDreamDiary()
+        }
     }
 }

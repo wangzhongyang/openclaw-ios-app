@@ -498,4 +498,24 @@ final class AppState {
     func removeQueueItem(_ id: String) {
         chatQueue.removeAll { $0.id == id }
     }
+
+    // MARK: - Dreams Methods
+
+    func loadDreamingStatus() async {
+        do {
+            let result = try await GatewayClient.shared.request(type: DreamingStatus.self, method: "dreaming.status")
+            dreamingStatus = result
+        } catch {
+            print("[AppState] dreaming status load failed: \(error)")
+        }
+    }
+
+    func loadDreamDiary() async {
+        do {
+            let result = try await GatewayClient.shared.request(type: DreamingDiaryResult.self, method: "dreaming.diary")
+            dreamDiaryContent = result.content
+        } catch {
+            print("[AppState] dream diary load failed: \(error)")
+        }
+    }
 }
