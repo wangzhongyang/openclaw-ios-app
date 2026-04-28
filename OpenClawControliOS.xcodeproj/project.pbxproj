@@ -25,6 +25,7 @@
 		4D0AF99D23AD2F737941CA23 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FC1C13E005122F6AC2C71DD /* LoginView.swift */; };
 		5A93430F7705673157F87434 /* SkillsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3212C7BF4ED4D8F8ADA1E09 /* SkillsView.swift */; };
 		5DD240F62139454EDC148CEF /* CronModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AD960DFA2AAFE532BC28218 /* CronModels.swift */; };
+		5DD6A76F1BC8F356D2F51F22 /* CronTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4E60808814C00BA4E9F1DF /* CronTests.swift */; };
 		60C9A887BFD6792006B86C19 /* InstancesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52C533F7B05976BCD7CAB99D /* InstancesView.swift */; };
 		69AB08701DF4A63E3F4CAE20 /* ChatItemTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C5BDC02254575D81B849669 /* ChatItemTypes.swift */; };
 		6A1E6B7AA4158BB5304B448B /* ExyteChat in Frameworks */ = {isa = PBXBuildFile; productRef = 9171DDC2391F656389985FD6 /* ExyteChat */; };
@@ -128,6 +129,7 @@
 		F54DA5E18879E1FE78B98810 /* LogModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogModels.swift; sourceTree = "<group>"; };
 		F83295ADA91C46FE2350A6D1 /* Combine.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Combine.framework; path = System/Library/Frameworks/Combine.framework; sourceTree = SDKROOT; };
 		F8D020558E1B657DB728409A /* SlashCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlashCommands.swift; sourceTree = "<group>"; };
+		FD4E60808814C00BA4E9F1DF /* CronTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CronTests.swift; sourceTree = "<group>"; };
 		FF7FA96758327B11868207E1 /* OpenClawControliOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = OpenClawControliOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -297,6 +299,7 @@
 		AD7836F207B1A6F349419024 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				FD4E60808814C00BA4E9F1DF /* CronTests.swift */,
 				C927801E3EFBE1A38659D846 /* DreamsTests.swift */,
 				70F229CDA0BE98BC3BF84FB0 /* SessionModelTests.swift */,
 			);
@@ -490,6 +493,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5DD6A76F1BC8F356D2F51F22 /* CronTests.swift in Sources */,
 				15C0C8B562376CFB964355D8 /* DreamsTests.swift in Sources */,
 				E515CE3BB501283163D6EBDE /* SessionModelTests.swift in Sources */,
 			);

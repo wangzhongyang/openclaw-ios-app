@@ -73,10 +73,6 @@ final class AppState {
     var configRaw = "{\n}\n"
     var configForm: [String: Any]?
 
-    // Cron
-    var cronJobs: [CronJob] = []
-    var cronStatus: CronStatus?
-
     // Channels
     var channelsSnapshot: ChannelsStatusSnapshot?
 
@@ -96,6 +92,13 @@ final class AppState {
     // Dreams
     var dreamingStatus: DreamingStatus?
     var dreamDiaryContent: String?
+
+    // Cron
+    var cronJobs: [CronJob] = []
+    var cronStatus: CronStatus?
+    var cronRuns: [CronRunLogEntry] = []
+    var cronLoading = false
+    var cronRunsLoading = false
 
     private init() {}
 
@@ -516,6 +519,42 @@ final class AppState {
             dreamDiaryContent = result.content
         } catch {
             print("[AppState] dream diary load failed: \(error)")
+        }
+    }
+
+    // MARK: - Cron Methods
+
+    func loadCronJobs() async {
+        cronLoading = true
+        defer { cronLoading = false }
+        
+        do {
+            let result = try await GatewayClient.shared.request(type: CronJobsListResult.self, method: "cron.list")
+            cronJobs = result.jobs
+        } catch {
+            print("[AppState] cron jobs load failed: \(error)")
+        }
+    }
+
+    func loadCronStatus() async {
+        do {
+            let result = try await GatewayClient.shared.request(type: CronStatus.self, method: "cron.status")
+            cronStatus = result
+        } catch {
+            print("[AppState] cron status load failed: \(error)")
+        }
+    }
+
+    func loadCronRuns(jobId: String) async {
+        cronRunsLoading = true
+        defer { cronRunsLoading = false }
+        
+        do {
+            let params = ["jobId": jobId] as [String: Any]
+            let result = try await GatewayClient.shared.request(type: CronRunsResult.self, method: "cron.runs", params: params)
+            cronRuns = result.entries
+        } catch {
+            print("[AppState] cron runs load failed: \(error)")
         }
     }
 }
