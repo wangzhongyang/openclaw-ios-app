@@ -30,6 +30,7 @@
 		69AB08701DF4A63E3F4CAE20 /* ChatItemTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C5BDC02254575D81B849669 /* ChatItemTypes.swift */; };
 		6A1E6B7AA4158BB5304B448B /* ExyteChat in Frameworks */ = {isa = PBXBuildFile; productRef = 9171DDC2391F656389985FD6 /* ExyteChat */; };
 		6BA12F24426F4E245236A574 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DFEFBF05186D3B8B06F3132 /* ChatView.swift */; };
+		702928402AAB7B1FC0B5F9D8 /* SkillsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6EF1CC7E9EFE31C32FA275A /* SkillsTests.swift */; };
 		75F7DB2CEBACEAF4D8531D6E /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E77D124AEF5DA4774E6EA68D /* RootView.swift */; };
 		89271B78C4D5993D0E988B6C /* DebugView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9DB0DD0EF32E3304E25E445 /* DebugView.swift */; };
 		8A85A95F1E3EB7E6D572F272 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1BDA8411A2102E9BE1E85A12 /* UIKit.framework */; };
@@ -106,6 +107,7 @@
 		A07655ADED5785D7100174D5 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		A27B2C9D87D2D86CC8B5EA57 /* ChatModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatModels.swift; sourceTree = "<group>"; };
 		A3E1DBC22242D3554C7413E3 /* InfraSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfraSettingsView.swift; sourceTree = "<group>"; };
+		A6EF1CC7E9EFE31C32FA275A /* SkillsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillsTests.swift; sourceTree = "<group>"; };
 		AE99280A8070DE578CC10351 /* SkillModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkillModels.swift; sourceTree = "<group>"; };
 		B5E81DA2E6AF6D5D924C659C /* OpenClawControliOSTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = OpenClawControliOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B6A20F9092A3FE01F259B076 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
@@ -302,6 +304,7 @@
 				FD4E60808814C00BA4E9F1DF /* CronTests.swift */,
 				C927801E3EFBE1A38659D846 /* DreamsTests.swift */,
 				70F229CDA0BE98BC3BF84FB0 /* SessionModelTests.swift */,
+				A6EF1CC7E9EFE31C32FA275A /* SkillsTests.swift */,
 			);
 			path = Tests;
 			sourceTree = "<group>";
@@ -496,6 +499,7 @@
 				5DD6A76F1BC8F356D2F51F22 /* CronTests.swift in Sources */,
 				15C0C8B562376CFB964355D8 /* DreamsTests.swift in Sources */,
 				E515CE3BB501283163D6EBDE /* SessionModelTests.swift in Sources */,
+				702928402AAB7B1FC0B5F9D8 /* SkillsTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
